@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>逆ポモドーロ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #ffffff;
+            color: #1a1f23;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .main-card {
+            border: 1px solid #e1e4e8;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .control-card {
+            border: 1px solid #e1e4e8;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        .control-card:hover {
+            background-color: #f6f8fa;
+            border-color: #2ea44f;
+            transform: translateX(4px);
+        }
+        .icon-container {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #2ea44f;
+        }
+        .status-tag {
+            background-color: #f0fff4;
+            color: #22863a;
+            border: 1px solid rgba(34, 134, 58, 0.2);
+            font-size: 10px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+        .timer-display {
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.05em;
+        }
+        .progress-container {
+            height: 2px;
+            background-color: #f1f3f5;
+            border-radius: 1px;
+            overflow: hidden;
+        }
+        #progress-bar {
+            height: 100%;
+            background-color: #2ea44f;
+            width: 0%;
+            transition: width 1s linear;
+        }
+        /* 集中モード時のスタイル変更 */
+        .focus-active .icon-container {
+            color: #d73a49;
+        }
+        .focus-active #progress-bar {
+            background-color: #d73a49;
+        }
+        .focus-active .timer-display {
+            color: #d73a49;
+        }
+        .focus-active .control-card:hover {
+            border-color: #d73a49;
+        }
+        .focus-active .status-tag {
+            background-color: #ffeef0;
+            color: #d73a49;
+            border-color: rgba(215, 58, 73, 0.2);
+        }
+        
+        @keyframes flash {
+            0% { opacity: 1; }
+            50% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+        .switching {
+            animation: flash 0.5s ease 2;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center pt-16 pb-12 px-6">
+
+    <div class="max-w-md w-full" id="app-container">
+        <!-- Profile Section -->
+        <div class="mb-10 text-left">
+            <h1 class="text-2xl font-bold mb-1 tracking-tight">逆ポモドーロ</h1>
+            <div class="flex flex-wrap gap-2 mt-3">
+                <span id="status-badge" class="status-tag px-2 py-0.5 rounded uppercase">休憩中</span>
+            </div>
+        </div>
+
+        <!-- Timer Display Card -->
+        <div class="main-card p-10 rounded-lg mb-6 text-center relative overflow-hidden bg-white" id="timer-card">
+            <div class="timer-display text-7xl font-bold mb-8 tracking-tighter" id="timer-text">25:00</div>
+            <div class="progress-container mb-6">
+                <div id="progress-bar"></div>
+            </div>
+            <!-- Message Area -->
+            <p id="timer-message" class="text-sm text-gray-500 min-h-[1.5rem]">ゆっくり深呼吸して休みましょう</p>
+        </div>
+
+        <!-- Controls Section (Link-style Cards) -->
+        <div class="space-y-3">
+            <!-- Start/Pause -->
+            <div onclick="toggleTimer()" class="control-card flex items-center p-4 rounded-lg group">
+                <div class="icon-container mr-4" id="btn-icon-container">
+                    <i class="fas fa-play text-lg" id="btn-icon"></i>
+                </div>
+                <div class="flex-1">
+                    <span class="font-medium" id="btn-text">計測を開始する</span>
+                </div>
+                <i class="fas fa-arrow-right text-gray-200 text-xs group-hover:text-current ml-2"></i>
+            </div>
+
+            <!-- Reset -->
+            <div onclick="resetTimer()" class="control-card flex items-center p-4 rounded-lg group">
+                <div class="icon-container mr-4">
+                    <i class="fas fa-redo-alt text-lg"></i>
+                </div>
+                <div class="flex-1">
+                    <span class="font-medium">リセット</span>
+                </div>
+                <i class="fas fa-arrow-right text-gray-200 text-xs group-hover:text-current ml-2"></i>
+            </div>
+        </div>
+
+        <!-- Minimal Footer -->
+        <footer class="mt-20 border-t border-gray-100 pt-6 text-center">
+            <p class="text-[10px] text-gray-400 font-mono tracking-widest uppercase">
+                &copy; 2026 Zavier // build.stable.0305
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        let timeLeft = 25 * 60;
+        let isRunning = false;
+        let isFocusMode = false;
+        let timerId = null;
+
+        const REST_TIME = 25 * 60;
+        const FOCUS_TIME = 5 * 60;
+
+        const messages = {
+            rest: [
+                "ゆっくり深呼吸して休みましょう",
+                "好きな飲み物でも飲んでリラックス",
+                "遠くを見て目を休めてください",
+                "次の5分に向けてエネルギー充電中"
+            ],
+            focus: [
+                "さあ、一気に集中しましょう",
+                "5分だけなら頑張れます",
+                "全力で取り組む時間です",
+                "終わりが見えています、集中！"
+            ]
+        };
+
+        const appContainer = document.getElementById('app-container');
+        const timerText = document.getElementById('timer-text');
+        const btnText = document.getElementById('btn-text');
+        const btnIcon = document.getElementById('btn-icon');
+        const progressBar = document.getElementById('progress-bar');
+        const timerCard = document.getElementById('timer-card');
+        const statusBadge = document.getElementById('status-badge');
+        const timerMessage = document.getElementById('timer-message');
+
+        function getRandomMessage(type) {
+            const list = messages[type];
+            return list[Math.floor(Math.random() * list.length)];
+        }
+
+        function updateDisplay() {
+            const mins = Math.floor(timeLeft / 60);
+            const secs = timeLeft % 60;
+            timerText.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            
+            const total = isFocusMode ? FOCUS_TIME : REST_TIME;
+            const percentage = ((total - timeLeft) / total) * 100;
+            progressBar.style.width = `${percentage}%`;
+
+            document.title = `${isFocusMode ? '作業' : '休憩'} | ${timerText.textContent}`;
+        }
+
+        function toggleTimer() {
+            if (isRunning) {
+                clearInterval(timerId);
+                btnText.textContent = "再開する";
+                btnIcon.className = "fas fa-play text-lg";
+            } else {
+                timerId = setInterval(() => {
+                    timeLeft--;
+                    if (timeLeft < 0) {
+                        switchMode();
+                    }
+                    updateDisplay();
+                }, 1000);
+                btnText.textContent = "一時停止";
+                btnIcon.className = "fas fa-pause text-lg";
+            }
+            isRunning = !isRunning;
+        }
+
+        function resetTimer() {
+            clearInterval(timerId);
+            isRunning = false;
+            isFocusMode = false;
+            timeLeft = REST_TIME;
+            updateUIForMode();
+            updateDisplay();
+            btnText.textContent = "計測を開始する";
+            btnIcon.className = "fas fa-play text-lg";
+        }
+
+        function switchMode() {
+            isFocusMode = !isFocusMode;
+            timeLeft = isFocusMode ? FOCUS_TIME : REST_TIME;
+            
+            timerCard.classList.add('switching');
+            setTimeout(() => timerCard.classList.remove('switching'), 1000);
+            
+            updateUIForMode();
+        }
+
+        function updateUIForMode() {
+            if (isFocusMode) {
+                appContainer.classList.add('focus-active');
+                statusBadge.textContent = "作業中";
+                timerMessage.textContent = getRandomMessage('focus');
+            } else {
+                appContainer.classList.remove('focus-active');
+                statusBadge.textContent = "休憩中";
+                timerMessage.textContent = getRandomMessage('rest');
+            }
+        }
+
+        updateDisplay();
+    </script>
+</body>
+</html>
