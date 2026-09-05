@@ -236,6 +236,26 @@
             btnIcon.className = "fas fa-play text-lg";
         }
 
+        // 休憩中は画面から離れる使い方が前提のアプリなのに、モード切替が
+        // 画面上の表示(タイトル・カード点滅)だけで、音や通知が一切なかった。
+        // 画面を見ていなくても気づけるよう、切替時に短いビープ音を鳴らす。
+        function playSwitchSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.frequency.value = isFocusMode ? 880 : 440;
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.4);
+            } catch (e) {
+                // Web Audio非対応環境では静かに諦める(タイマー自体は問題なく動く)
+            }
+        }
+
         function switchMode() {
             isFocusMode = !isFocusMode;
             timeLeft = isFocusMode ? FOCUS_TIME : REST_TIME;
@@ -244,6 +264,7 @@
             timerCard.classList.add('switching');
             setTimeout(() => timerCard.classList.remove('switching'), 1000);
 
+            playSwitchSound();
             updateUIForMode();
         }
 
