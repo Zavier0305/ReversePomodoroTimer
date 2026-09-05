@@ -6,6 +6,7 @@
     <title>逆ポモドーロ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@700;800&display=swap" rel="stylesheet">
     <style>
         body {
             background-color: #ffffff;
@@ -13,6 +14,7 @@
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             -webkit-font-smoothing: antialiased;
         }
+        .font-heading { font-family: 'Shippori Mincho', serif; }
         .main-card {
             border: 1px solid #e1e4e8;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -24,7 +26,7 @@
         }
         .control-card:hover {
             background-color: #f6f8fa;
-            border-color: #2ea44f;
+            border-color: #a97a1f;
             transform: translateX(4px);
         }
         .icon-container {
@@ -33,12 +35,12 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            color: #2ea44f;
+            color: #a97a1f;
         }
         .status-tag {
-            background-color: #f0fff4;
-            color: #22863a;
-            border: 1px solid rgba(34, 134, 58, 0.2);
+            background-color: #fbf1de;
+            color: #7a6018;
+            border: 1px solid rgba(169, 122, 31, 0.25);
             font-size: 10px;
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         }
@@ -54,27 +56,27 @@
         }
         #progress-bar {
             height: 100%;
-            background-color: #2ea44f;
+            background-color: #a97a1f;
             width: 0%;
             transition: width 1s linear;
         }
         /* 集中モード時のスタイル変更 */
         .focus-active .icon-container {
-            color: #d73a49;
+            color: #7a0000;
         }
         .focus-active #progress-bar {
-            background-color: #d73a49;
+            background-color: #7a0000;
         }
         .focus-active .timer-display {
-            color: #d73a49;
+            color: #7a0000;
         }
         .focus-active .control-card:hover {
-            border-color: #d73a49;
+            border-color: #7a0000;
         }
         .focus-active .status-tag {
-            background-color: #ffeef0;
-            color: #d73a49;
-            border-color: rgba(215, 58, 73, 0.2);
+            background-color: #fbeaea;
+            color: #7a0000;
+            border-color: rgba(122, 0, 0, 0.2);
         }
         
         @keyframes flash {
@@ -92,7 +94,7 @@
     <div class="max-w-md w-full" id="app-container">
         <!-- Profile Section -->
         <div class="mb-10 text-left">
-            <h1 class="text-2xl font-bold mb-1 tracking-tight">逆ポモドーロ</h1>
+            <h1 class="font-heading text-2xl font-bold mb-1 tracking-tight">逆ポモドーロ</h1>
             <div class="flex flex-wrap gap-2 mt-3">
                 <span id="status-badge" class="status-tag px-2 py-0.5 rounded uppercase">休憩中</span>
             </div>
