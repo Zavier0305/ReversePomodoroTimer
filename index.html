@@ -15,6 +15,18 @@
             -webkit-font-smoothing: antialiased;
         }
         .font-heading { font-family: 'Shippori Mincho', serif; }
+        /* control-cardをdivからbuttonに変えたため、UA既定の枠線・背景・
+           フォントを打ち消す(Tailwind CDNのpreflightだけに頼らない) */
+        button {
+            background: none;
+            border: none;
+            font: inherit;
+            color: inherit;
+        }
+        button:focus-visible {
+            outline: 2px solid #a97a1f;
+            outline-offset: 2px;
+        }
         .main-card {
             border: 1px solid #e1e4e8;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -113,7 +125,7 @@
         <!-- Controls Section (Link-style Cards) -->
         <div class="space-y-3">
             <!-- Start/Pause -->
-            <div onclick="toggleTimer()" class="control-card flex items-center p-4 rounded-lg group">
+            <button type="button" onclick="toggleTimer()" class="control-card flex items-center w-full text-left p-4 rounded-lg group">
                 <div class="icon-container mr-4" id="btn-icon-container">
                     <i class="fas fa-play text-lg" id="btn-icon"></i>
                 </div>
@@ -121,10 +133,10 @@
                     <span class="font-medium" id="btn-text">計測を開始する</span>
                 </div>
                 <i class="fas fa-arrow-right text-gray-200 text-xs group-hover:text-current ml-2"></i>
-            </div>
+            </button>
 
             <!-- Reset -->
-            <div onclick="resetTimer()" class="control-card flex items-center p-4 rounded-lg group">
+            <button type="button" onclick="resetTimer()" class="control-card flex items-center w-full text-left p-4 rounded-lg group">
                 <div class="icon-container mr-4">
                     <i class="fas fa-redo-alt text-lg"></i>
                 </div>
@@ -132,7 +144,7 @@
                     <span class="font-medium">リセット</span>
                 </div>
                 <i class="fas fa-arrow-right text-gray-200 text-xs group-hover:text-current ml-2"></i>
-            </div>
+            </button>
         </div>
 
         <!-- Minimal Footer -->
