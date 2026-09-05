@@ -189,6 +189,87 @@
         .switching {
             animation: flash 0.5s ease 2;
         }
+
+        /* 初回チュートリアル: 既存の名刺(meishi)カード・ボタンの見た目を再利用 */
+        .tutorial-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(43, 36, 32, 0.55);
+            backdrop-filter: blur(2px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            z-index: 100;
+        }
+        .tutorial-overlay[hidden] {
+            display: none;
+        }
+        .tutorial-card {
+            max-width: 420px;
+            width: 100%;
+            max-height: calc(100vh - 48px);
+            overflow-y: auto;
+            padding: 32px 28px 28px;
+        }
+        .tutorial-card h2 {
+            color: var(--maroon);
+        }
+        .tutorial-card p,
+        .tutorial-card li {
+            color: var(--ink-soft);
+            font-size: 14px;
+            line-height: 1.8;
+        }
+        .tutorial-list {
+            margin: 18px 0 22px;
+            padding-left: 0;
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .tutorial-list li {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+        .tutorial-list .icon-container {
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+        .tutorial-note {
+            font-size: 12px !important;
+            color: var(--ink-faint) !important;
+            border-top: 1px solid var(--border);
+            padding-top: 14px;
+            margin-top: 6px;
+        }
+        /* ヘルプボタン: control-cardと同じ配色・輪郭を丸いFABに流用 */
+        .help-fab {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 999px;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--ink-faint);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 1px 3px rgba(43, 36, 32, 0.06);
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 50;
+        }
+        .help-fab:hover {
+            color: var(--maroon);
+            border-color: var(--maroon);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(43, 36, 32, 0.08);
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center pt-16 pb-12 px-6">
@@ -245,6 +326,43 @@
                 &copy; 2026 Zavier // build.stable.0305
             </p>
         </footer>
+    </div>
+
+    <!-- Help Button: いつでもチュートリアルを見返せる -->
+    <button type="button" onclick="openTutorial()" class="help-fab" aria-label="使い方を見る">
+        <i class="fas fa-question text-sm"></i>
+    </button>
+
+    <!-- Tutorial Modal (初回訪問時に自動表示) -->
+    <div class="tutorial-overlay" id="tutorial-overlay" hidden>
+        <div class="main-card tutorial-card relative" role="dialog" aria-modal="true" aria-labelledby="tutorial-title">
+            <div class="corner-bracket corner-tl" aria-hidden="true"></div>
+            <div class="corner-bracket corner-br" aria-hidden="true"></div>
+            <h2 id="tutorial-title" class="font-heading text-xl font-bold mb-3">逆ポモドーロってなに?</h2>
+            <p>
+                ふつうのポモドーロは「25分集中して5分休憩」。この逆ポモドーロは発想を逆転して、<strong>先に25分しっかり休んでから、最後の5分だけ全力で集中</strong>する…をくり返します。
+            </p>
+            <ul class="tutorial-list">
+                <li>
+                    <div class="icon-container"><i class="fas fa-play text-sm"></i></div>
+                    <span>「計測を開始する」でスタート。もう一度押すと一時停止・再開できます。</span>
+                </li>
+                <li>
+                    <div class="icon-container"><i class="fas fa-redo-alt text-sm"></i></div>
+                    <span>「リセット」を押すと、最初の休憩(25:00)からやり直せます。</span>
+                </li>
+                <li>
+                    <div class="icon-container"><i class="fas fa-volume-up text-sm"></i></div>
+                    <span>休憩⇔集中が切り替わるタイミングで、短い音とカードの点滅でお知らせします。画面を見ていなくても気づけます。</span>
+                </li>
+            </ul>
+            <button type="button" onclick="closeTutorial()" class="control-card primary group">
+                <div class="icon-container mr-4"><i class="fas fa-check text-lg"></i></div>
+                <div class="flex-1"><span class="font-medium">わかった、はじめる</span></div>
+                <i class="fas fa-arrow-right control-arrow text-xs group-hover:text-current ml-2"></i>
+            </button>
+            <p class="tutorial-note">この説明はいつでも右下の「？」ボタンから見返せます。</p>
+        </div>
     </div>
 
     <script>
@@ -386,6 +504,45 @@
                 statusBadge.textContent = "休憩中";
                 timerMessage.textContent = getRandomMessage('rest');
             }
+        }
+
+        // --- 初回チュートリアル ---
+        // タイマー本体のロジックには一切手を加えず、表示のON/OFFとlocalStorageへの
+        // 既読フラグ保存のみを行う。
+        const TUTORIAL_SEEN_KEY = 'reversepomodoro_tutorial_seen';
+        const tutorialOverlay = document.getElementById('tutorial-overlay');
+
+        function openTutorial() {
+            tutorialOverlay.hidden = false;
+        }
+
+        function closeTutorial() {
+            tutorialOverlay.hidden = true;
+            try {
+                localStorage.setItem(TUTORIAL_SEEN_KEY, '1');
+            } catch (e) {
+                // プライベートブラウジング等でlocalStorageが使えなくても、
+                // タイマー自体の動作には影響しない(次回訪問時にまた表示されるだけ)。
+            }
+        }
+
+        // オーバーレイの外側クリックで閉じる
+        tutorialOverlay.addEventListener('click', (e) => {
+            if (e.target === tutorialOverlay) closeTutorial();
+        });
+
+        // Escキーで閉じる
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !tutorialOverlay.hidden) closeTutorial();
+        });
+
+        // 初回訪問時のみ自動表示
+        try {
+            if (!localStorage.getItem(TUTORIAL_SEEN_KEY)) {
+                openTutorial();
+            }
+        } catch (e) {
+            // localStorageが使えない環境では自動表示をスキップする(「？」ボタンからは開ける)。
         }
 
         updateDisplay();
