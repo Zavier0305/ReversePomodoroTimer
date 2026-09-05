@@ -148,6 +148,7 @@
         let isRunning = false;
         let isFocusMode = false;
         let timerId = null;
+        let targetEndTime = null; // setIntervalの発火間隔ではなく、実際の時刻から残り時間を計算するための目標時刻
 
         const REST_TIME = 25 * 60;
         const FOCUS_TIME = 5 * 60;
@@ -193,19 +194,30 @@
             document.title = `${isFocusMode ? '作業' : '休憩'} | ${timerText.textContent}`;
         }
 
+        // setIntervalは背景タブ(スマホの画面ロック中や他タブ表示中)では
+        // 1秒おきに正確には発火せず、ブラウザ側で間引かれる(数十秒〜1分に
+        // 1回程度まで遅延することがある)。timeLeft--をtick回数で数えていると、
+        // 休憩・集中どちらも「25分/5分経ったつもり」が実際にはもっと長く
+        // かかってしまう。目標時刻(targetEndTime)からの残り秒数を毎回
+        // 計算し直すことで、発火が遅れても実際の経過時間に追いつくようにする。
+        function tick() {
+            const remaining = Math.round((targetEndTime - Date.now()) / 1000);
+            if (remaining <= 0) {
+                switchMode();
+            } else {
+                timeLeft = remaining;
+            }
+            updateDisplay();
+        }
+
         function toggleTimer() {
             if (isRunning) {
                 clearInterval(timerId);
                 btnText.textContent = "再開する";
                 btnIcon.className = "fas fa-play text-lg";
             } else {
-                timerId = setInterval(() => {
-                    timeLeft--;
-                    if (timeLeft < 0) {
-                        switchMode();
-                    }
-                    updateDisplay();
-                }, 1000);
+                targetEndTime = Date.now() + timeLeft * 1000;
+                timerId = setInterval(tick, 1000);
                 btnText.textContent = "一時停止";
                 btnIcon.className = "fas fa-pause text-lg";
             }
@@ -217,6 +229,7 @@
             isRunning = false;
             isFocusMode = false;
             timeLeft = REST_TIME;
+            targetEndTime = null;
             updateUIForMode();
             updateDisplay();
             btnText.textContent = "計測を開始する";
@@ -226,10 +239,11 @@
         function switchMode() {
             isFocusMode = !isFocusMode;
             timeLeft = isFocusMode ? FOCUS_TIME : REST_TIME;
-            
+            targetEndTime = Date.now() + timeLeft * 1000;
+
             timerCard.classList.add('switching');
             setTimeout(() => timerCard.classList.remove('switching'), 1000);
-            
+
             updateUIForMode();
         }
 
