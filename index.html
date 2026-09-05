@@ -251,6 +251,10 @@
                 gain.connect(ctx.destination);
                 osc.start();
                 osc.stop(ctx.currentTime + 0.4);
+                // 呼び出すたびに新しいAudioContextを作っており、閉じないままだと
+                // このタイマーを長時間(数時間)動かし続けた場合にAudioContextが
+                // 溜まり続けてしまう。再生が終わったら破棄する。
+                osc.onended = () => ctx.close();
             } catch (e) {
                 // Web Audio非対応環境では静かに諦める(タイマー自体は問題なく動く)
             }
