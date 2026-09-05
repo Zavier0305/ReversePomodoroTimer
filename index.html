@@ -12,15 +12,30 @@
     <meta name="twitter:card" content="summary">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&family=Noto+Sans+JP:wght@400;500;700;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg: #faf5ec;
+            --surface: #fffdf9;
+            --ink: #2b2420;
+            --ink-soft: #7a6f61;
+            --ink-faint: #7c6c56;
+            --maroon: #7a0000;
+            --maroon-dark: #560000;
+            --gold: #a97a1f;
+            --gold-soft: #cda75a;
+            --border: #ddd0ba;
+        }
         body {
-            background-color: #ffffff;
-            color: #1a1f23;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: repeating-linear-gradient(135deg, rgba(169, 122, 31, 0.035) 0px, rgba(169, 122, 31, 0.035) 1px, transparent 1px, transparent 16px), var(--bg);
+            color: var(--ink);
+            font-family: 'Noto Sans JP', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             -webkit-font-smoothing: antialiased;
         }
         .font-heading { font-family: 'Shippori Mincho', serif; }
+        h1.font-heading { color: var(--maroon); }
         /* control-cardをdivからbuttonに変えたため、UA既定の枠線・背景・
            フォントを打ち消す(Tailwind CDNのpreflightだけに頼らない) */
         button {
@@ -30,22 +45,80 @@
             color: inherit;
         }
         button:focus-visible {
-            outline: 2px solid #a97a1f;
+            outline: 2px solid var(--maroon);
             outline-offset: 2px;
         }
         .main-card {
-            border: 1px solid #e1e4e8;
+            border: 1px solid var(--border);
+            background-color: var(--surface);
+            border-radius: 4px;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+        /* 名刺(meishi)デザインの角飾り: カード左上・右下の隅にL字の金アクセント */
+        .corner-bracket {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--gold);
+            opacity: 0.55;
+            pointer-events: none;
+        }
+        .corner-tl {
+            top: 10px;
+            left: 10px;
+            border-right: none;
+            border-bottom: none;
+        }
+        .corner-br {
+            bottom: 10px;
+            right: 10px;
+            border-left: none;
+            border-top: none;
+        }
         .control-card {
-            border: 1px solid #e1e4e8;
+            display: flex;
+            align-items: center;
+            width: 100%;
+            text-align: left;
+            padding: 14px 24px;
+            border-radius: 999px;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--ink-soft);
+            box-shadow: 0 1px 3px rgba(43, 36, 32, 0.06);
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
         }
         .control-card:hover {
-            background-color: #f6f8fa;
-            border-color: #a97a1f;
-            transform: translateX(4px);
+            transform: translateY(-2px);
+            border-color: var(--maroon);
+            color: var(--maroon);
+            box-shadow: 0 4px 10px rgba(43, 36, 32, 0.08);
+        }
+        .control-card:hover .icon-container {
+            color: var(--maroon);
+        }
+        .control-card .control-arrow {
+            color: var(--border);
+        }
+        /* 開始/一時停止ボタンは主要アクションのため、朱色グラデーションのCTAにする */
+        .control-card.primary {
+            background: linear-gradient(180deg, var(--maroon), var(--maroon-dark));
+            border: none;
+            color: #fff5e8;
+            box-shadow: 0 2px 8px rgba(122, 0, 0, 0.25);
+        }
+        .control-card.primary:hover {
+            transform: translateY(-2px);
+            color: #fff5e8;
+            box-shadow: 0 4px 14px rgba(122, 0, 0, 0.32);
+        }
+        .control-card.primary .icon-container,
+        .control-card.primary:hover .icon-container {
+            color: #fff5e8;
+        }
+        .control-card.primary .control-arrow {
+            color: rgba(255, 245, 232, 0.55);
         }
         .icon-container {
             width: 24px;
@@ -53,50 +126,61 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            color: #a97a1f;
+            color: var(--gold);
         }
         .status-tag {
-            background-color: #fbf1de;
-            color: #7a6018;
-            border: 1px solid rgba(169, 122, 31, 0.25);
+            background-color: rgba(169, 122, 31, 0.12);
+            color: var(--ink-faint);
+            border: 1px solid rgba(169, 122, 31, 0.3);
             font-size: 10px;
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-family: 'Noto Sans JP', sans-serif;
+            font-weight: 500;
         }
         .timer-display {
+            font-family: 'Noto Sans JP', sans-serif;
             font-variant-numeric: tabular-nums;
             letter-spacing: -0.05em;
+            color: var(--ink);
+        }
+        .timer-message {
+            color: var(--ink-soft);
         }
         .progress-container {
             height: 2px;
-            background-color: #f1f3f5;
+            background-color: var(--border);
+            opacity: 0.5;
             border-radius: 1px;
             overflow: hidden;
         }
         #progress-bar {
             height: 100%;
-            background-color: #a97a1f;
+            background-color: var(--gold);
             width: 0%;
             transition: width 1s linear;
         }
         /* 集中モード時のスタイル変更 */
         .focus-active .icon-container {
-            color: #7a0000;
+            color: var(--maroon);
         }
         .focus-active #progress-bar {
-            background-color: #7a0000;
+            background-color: var(--maroon);
         }
         .focus-active .timer-display {
-            color: #7a0000;
+            color: var(--maroon);
         }
         .focus-active .control-card:hover {
-            border-color: #7a0000;
+            border-color: var(--maroon);
         }
         .focus-active .status-tag {
-            background-color: #fbeaea;
-            color: #7a0000;
-            border-color: rgba(122, 0, 0, 0.2);
+            background-color: rgba(122, 0, 0, 0.1);
+            color: var(--maroon);
+            border-color: rgba(122, 0, 0, 0.25);
         }
-        
+        .app-footer {
+            border-top: 1px solid var(--border);
+            color: var(--ink-faint);
+        }
+
         @keyframes flash {
             0% { opacity: 1; }
             50% { opacity: 0.8; }
@@ -119,43 +203,45 @@
         </div>
 
         <!-- Timer Display Card -->
-        <div class="main-card p-10 rounded-lg mb-6 text-center relative overflow-hidden bg-white" id="timer-card">
+        <div class="main-card p-10 mb-6 text-center relative overflow-hidden" id="timer-card">
+            <div class="corner-bracket corner-tl" aria-hidden="true"></div>
+            <div class="corner-bracket corner-br" aria-hidden="true"></div>
             <div class="timer-display text-7xl font-bold mb-8 tracking-tighter" id="timer-text">25:00</div>
             <div class="progress-container mb-6">
                 <div id="progress-bar"></div>
             </div>
             <!-- Message Area -->
-            <p id="timer-message" class="text-sm text-gray-500 min-h-[1.5rem]">ゆっくり深呼吸して休みましょう</p>
+            <p id="timer-message" class="timer-message text-sm min-h-[1.5rem]">ゆっくり深呼吸して休みましょう</p>
         </div>
 
         <!-- Controls Section (Link-style Cards) -->
         <div class="space-y-3">
             <!-- Start/Pause -->
-            <button type="button" onclick="toggleTimer()" class="control-card flex items-center w-full text-left p-4 rounded-lg group">
+            <button type="button" onclick="toggleTimer()" class="control-card primary group">
                 <div class="icon-container mr-4" id="btn-icon-container">
                     <i class="fas fa-play text-lg" id="btn-icon"></i>
                 </div>
                 <div class="flex-1">
                     <span class="font-medium" id="btn-text">計測を開始する</span>
                 </div>
-                <i class="fas fa-arrow-right text-gray-200 text-xs group-hover:text-current ml-2"></i>
+                <i class="fas fa-arrow-right control-arrow text-xs group-hover:text-current ml-2"></i>
             </button>
 
             <!-- Reset -->
-            <button type="button" onclick="resetTimer()" class="control-card flex items-center w-full text-left p-4 rounded-lg group">
+            <button type="button" onclick="resetTimer()" class="control-card group">
                 <div class="icon-container mr-4">
                     <i class="fas fa-redo-alt text-lg"></i>
                 </div>
                 <div class="flex-1">
                     <span class="font-medium">リセット</span>
                 </div>
-                <i class="fas fa-arrow-right text-gray-200 text-xs group-hover:text-current ml-2"></i>
+                <i class="fas fa-arrow-right control-arrow text-xs group-hover:text-current ml-2"></i>
             </button>
         </div>
 
         <!-- Minimal Footer -->
-        <footer class="mt-20 border-t border-gray-100 pt-6 text-center">
-            <p class="text-[10px] text-gray-400 font-mono tracking-widest uppercase">
+        <footer class="app-footer mt-20 pt-6 text-center">
+            <p class="text-[10px] font-mono tracking-widest uppercase">
                 &copy; 2026 Zavier // build.stable.0305
             </p>
         </footer>
@@ -204,7 +290,7 @@
             const mins = Math.floor(timeLeft / 60);
             const secs = timeLeft % 60;
             timerText.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-            
+
             const total = isFocusMode ? FOCUS_TIME : REST_TIME;
             const percentage = ((total - timeLeft) / total) * 100;
             progressBar.style.width = `${percentage}%`;
