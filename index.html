@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>逆ポモドーロ</title>
+    <meta name="description" content="25分の休憩と5分の作業を繰り返す、逆転の発想のポモドーロタイマー。">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://reversepomodorotimer.vercel.app/">
+    <meta property="og:title" content="逆ポモドーロ">
+    <meta property="og:description" content="25分の休憩と5分の作業を繰り返す、逆転の発想のポモドーロタイマー。">
+    <meta name="twitter:card" content="summary">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@700;800&display=swap" rel="stylesheet">
@@ -15,6 +21,18 @@
             -webkit-font-smoothing: antialiased;
         }
         .font-heading { font-family: 'Shippori Mincho', serif; }
+        /* control-cardをdivからbuttonに変えたため、UA既定の枠線・背景・
+           フォントを打ち消す(Tailwind CDNのpreflightだけに頼らない) */
+        button {
+            background: none;
+            border: none;
+            font: inherit;
+            color: inherit;
+        }
+        button:focus-visible {
+            outline: 2px solid #a97a1f;
+            outline-offset: 2px;
+        }
         .main-card {
             border: 1px solid #e1e4e8;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -113,7 +131,7 @@
         <!-- Controls Section (Link-style Cards) -->
         <div class="space-y-3">
             <!-- Start/Pause -->
-            <div onclick="toggleTimer()" class="control-card flex items-center p-4 rounded-lg group">
+            <button type="button" onclick="toggleTimer()" class="control-card flex items-center w-full text-left p-4 rounded-lg group">
                 <div class="icon-container mr-4" id="btn-icon-container">
                     <i class="fas fa-play text-lg" id="btn-icon"></i>
                 </div>
@@ -121,10 +139,10 @@
                     <span class="font-medium" id="btn-text">計測を開始する</span>
                 </div>
                 <i class="fas fa-arrow-right text-gray-200 text-xs group-hover:text-current ml-2"></i>
-            </div>
+            </button>
 
             <!-- Reset -->
-            <div onclick="resetTimer()" class="control-card flex items-center p-4 rounded-lg group">
+            <button type="button" onclick="resetTimer()" class="control-card flex items-center w-full text-left p-4 rounded-lg group">
                 <div class="icon-container mr-4">
                     <i class="fas fa-redo-alt text-lg"></i>
                 </div>
@@ -132,7 +150,7 @@
                     <span class="font-medium">リセット</span>
                 </div>
                 <i class="fas fa-arrow-right text-gray-200 text-xs group-hover:text-current ml-2"></i>
-            </div>
+            </button>
         </div>
 
         <!-- Minimal Footer -->
@@ -148,6 +166,7 @@
         let isRunning = false;
         let isFocusMode = false;
         let timerId = null;
+        let targetEndTime = null; // setIntervalの発火間隔ではなく、実際の時刻から残り時間を計算するための目標時刻
 
         const REST_TIME = 25 * 60;
         const FOCUS_TIME = 5 * 60;
@@ -193,19 +212,30 @@
             document.title = `${isFocusMode ? '作業' : '休憩'} | ${timerText.textContent}`;
         }
 
+        // setIntervalは背景タブ(スマホの画面ロック中や他タブ表示中)では
+        // 1秒おきに正確には発火せず、ブラウザ側で間引かれる(数十秒〜1分に
+        // 1回程度まで遅延することがある)。timeLeft--をtick回数で数えていると、
+        // 休憩・集中どちらも「25分/5分経ったつもり」が実際にはもっと長く
+        // かかってしまう。目標時刻(targetEndTime)からの残り秒数を毎回
+        // 計算し直すことで、発火が遅れても実際の経過時間に追いつくようにする。
+        function tick() {
+            const remaining = Math.round((targetEndTime - Date.now()) / 1000);
+            if (remaining <= 0) {
+                switchMode();
+            } else {
+                timeLeft = remaining;
+            }
+            updateDisplay();
+        }
+
         function toggleTimer() {
             if (isRunning) {
                 clearInterval(timerId);
                 btnText.textContent = "再開する";
                 btnIcon.className = "fas fa-play text-lg";
             } else {
-                timerId = setInterval(() => {
-                    timeLeft--;
-                    if (timeLeft < 0) {
-                        switchMode();
-                    }
-                    updateDisplay();
-                }, 1000);
+                targetEndTime = Date.now() + timeLeft * 1000;
+                timerId = setInterval(tick, 1000);
                 btnText.textContent = "一時停止";
                 btnIcon.className = "fas fa-pause text-lg";
             }
@@ -217,19 +247,46 @@
             isRunning = false;
             isFocusMode = false;
             timeLeft = REST_TIME;
+            targetEndTime = null;
             updateUIForMode();
             updateDisplay();
             btnText.textContent = "計測を開始する";
             btnIcon.className = "fas fa-play text-lg";
         }
 
+        // 休憩中は画面から離れる使い方が前提のアプリなのに、モード切替が
+        // 画面上の表示(タイトル・カード点滅)だけで、音や通知が一切なかった。
+        // 画面を見ていなくても気づけるよう、切替時に短いビープ音を鳴らす。
+        function playSwitchSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.frequency.value = isFocusMode ? 880 : 440;
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.4);
+                // 呼び出すたびに新しいAudioContextを作っており、閉じないままだと
+                // このタイマーを長時間(数時間)動かし続けた場合にAudioContextが
+                // 溜まり続けてしまう。再生が終わったら破棄する。
+                osc.onended = () => ctx.close();
+            } catch (e) {
+                // Web Audio非対応環境では静かに諦める(タイマー自体は問題なく動く)
+            }
+        }
+
         function switchMode() {
             isFocusMode = !isFocusMode;
             timeLeft = isFocusMode ? FOCUS_TIME : REST_TIME;
-            
+            targetEndTime = Date.now() + timeLeft * 1000;
+
             timerCard.classList.add('switching');
             setTimeout(() => timerCard.classList.remove('switching'), 1000);
-            
+
+            playSwitchSound();
             updateUIForMode();
         }
 
